@@ -11,18 +11,24 @@ class Card {
 }
 
 class Deck {
-	constructor() {
-		this.deck = Deck.generateDeck();
+	constructor(gameMode = null) {
+		this.deck = Deck.generateDeck(gameMode);
 	}
-	static generateDeck() {
+
+	static generateDeck(gameMode = null) {
 		let newDeck = [];
 		const suits = ["♣", "♦", "♥", "♠"];
 		const values = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+		// ブラックジャック
+		const blackJack = {"A": 1, "J": 10, "Q": 10, "K": 10};
 
 		for(let i = 0; i < suits.length; i++) {
-			for(let j = 0; j < values.length; j++) newDeck.push(new Card(suits[i], values[j], j + 1))
+			for(let j = 0; j < values.length; j++) {
+				let currentValue = values[i];
+				let intValue = (gameMode == "21") ? (currentValue in blackJack ? blackJack[currentValue] : parseInt(currentValue)) : j + 1;
+				newDeck.push(new Card(suits[i], values[j], intValue))
+			}
 		}
-
 		return newDeck;
 	}
 
@@ -56,7 +62,7 @@ class Dealer {
 		let table = {
 			"players": [],
 			"gameMode": gameMode,
-			"deck": new Deck()
+			"deck": new Deck(gameMode)
 		}
 		// デッキのシャッフル
 		table["deck"].sfuffleDeck();
@@ -97,12 +103,52 @@ class Dealer {
 		if(value > 21) value = 0;
 		return value;
 	}
+
+	static winnerOf21(table) {
+		let points = [];
+		let cache = [];
+		for(let i = 0; i < table["players"].length; i++) {
+			let point = Dealer.score21Individual(table["players"][i]);
+			points.push(point);
+
+			if(cache[point] >= 1) cache[point] += 1;
+			else cache[point] = 1;
+		}
+
+		console.log(points);
+
+		let winnerIndex = HelperFunctions.maxInArrayIndex(points);
+		if(cache[points[winnerIndex]] > 1) return "It is a draw ";
+		else if(cache[points[winnerIndex]] >= 0) return "player" + (winnerIndex + 1) + "is winner";
+		else return "No winners..";
+	}
+
+	static checkWinner(table) {
+		if(table["gameMode"] == "21") return Dealer.winnerOf21(table);
+		else return "no game";
+	}
+}
+
+// 計算のみを行う
+class HelperFunctions {
+	static maxInArrayIndex(intArr) {
+		let maxIndex = 0;
+		let maxValue = intArr[0];
+
+		for(let i = 1; i < intArr.length; i++) {
+			if(intArr[i] > maxValue) {
+				maxValue = intArr[i];
+				maxIndex = i;
+			}
+		}
+
+		return maxIndex;
+	}
 }
 
 let table1 = Dealer.startGame(7, "21");
-// console.log(table1["players"][0]);
-console.log(Dealer.score21Individual(table1["players"][0]));
-// Dealer.printTableInformation(table1);
-
+Dealer.printTableInformation(table1);
+console.log(Dealer.checkWinner(table1));
 let table2 = Dealer.startGame(5, "poker");
-// Dealer.printTableInformation(table2);
+Dealer.printTableInformation(table2);
+console.log(Dealer.checkWinner(table2));
